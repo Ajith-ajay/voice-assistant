@@ -1,11 +1,8 @@
 import subprocess
 import wolframalpha
-import pyttsx3
-import tkinter
 import json
 import random
 import operator
-import speech_recognition as sr
 import datetime
 import wikipedia
 import webbrowser
@@ -13,11 +10,9 @@ import os
 import winshell
 import pyjokes
 import feedparser
-import smtplib
 import ctypes
 import time
 import requests
-import shutil
 import urllib.parse
 from twilio.rest import Client
 from clint.textui import progress
@@ -25,138 +20,12 @@ from ecapture import ecapture as ec
 from bs4 import BeautifulSoup
 import win32com.client as wincl
 from urllib.request import urlopen
-
-# setting the speech engine
-
-engine = pyttsx3.init('sapi5')
-voices = engine.getProperty('voices')
-engine.setProperty('voice', voices[0].id)   #voice id 0 for male
+from voice_engine import speak
+from utils import takeCommand
 
 
-def speak(audio):
-    engine.say(audio)
-    engine.runAndWait()
 
-def wishMe():
-    hour = int(datetime.datetime.now().hour)
-    if hour>= 0 and hour<12:
-        speak("Good Morning Sir !")
- 
-    elif hour>= 12 and hour<18:
-        speak("Good Afternoon Sir !")   
- 
-    else:
-        speak("Good Evening Sir !")  
- 
-    assname =("Jarvis 1 point o")
-    speak("I am your Assistant")
-    speak(assname)
-    
-
-def username():
-    speak("What should i call you sir")
-    uname = takeCommand()
-    speak("Welcome Mister")
-    speak(uname)
-    columns = shutil.get_terminal_size().columns
-    
-    # print("#####################".center(columns))
-    # print("Welcome Mr.", uname.center(columns))
-    # print("#####################".center(columns))
-    print("Welcome Mr.",uname)
-    
-    speak("How can i Help you, Sir")
-
-
-def takeCommand():
-    """
-    Listens to the user's voice input and converts it to text.
-    Returns 'None' if the speech was not recognized.
-    """
-
-    r = sr.Recognizer()
-
-    with sr.Microphone() as source:
-        print("Listening...")
-        # Adjust to ambient noise for better recognition
-        r.adjust_for_ambient_noise(source, duration=1)
-        r.pause_threshold = 1 
-        try:
-            audio = r.listen(source, timeout=5, phrase_time_limit=8)
-        except sr.WaitTimeoutError:
-            print("Listening timed out while waiting for phrase to start.")
-            return "None"
-
-    try:
-        print("Recognizing...")
-        query = r.recognize_google(audio, language='en-in')
-        print(f"User said: {query}\n")
-    except sr.UnknownValueError:
-        print("Sorry, I could not understand the audio.")
-        return "None"
-    except sr.RequestError as e:
-        print(f"Could not request results from Google Speech Recognition service; {e}")
-        return "None"
-    except Exception as e:
-        print(f"Unexpected error: {e}")
-        return "None"
-
-    return query
-
- 
-def sendEmail(to, content):
-    server = smtplib.SMTP('smtp.gmail.com', 587)
-    server.ehlo()
-    server.starttls()
-    
-    # Enable low security in gmail
-    server.login('your email id', 'your email password')
-    server.sendmail('your email id', to, content)
-    server.close()
-
-def open_spotify_song(song_name):
-    try:
-        query = urllib.parse.quote(song_name)
-        spotify_uri = f"spotify:search:{query}"
-        
-        # Try to open Spotify app directly
-        os.startfile(spotify_uri)
-        print(f"Trying to open in Spotify App: {song_name}")
-
-    except Exception as e:
-        print(f"Spotify App not found or error: {e}")
-        webbrowser.open(f"https://open.spotify.com/search/{query}")
-
-def open_youtube_song(song_name):
-    try:
-        query = urllib.parse.quote(song_name)
-        # Try to open YouTube in browser directly (YouTube doesn't have URI like Spotify)
-        webbrowser.open(f"https://www.youtube.com/results?search_query={query}")
-        print(f"Opening on YouTube: {song_name}")
-
-    except Exception as e:
-        print(f"Failed to open YouTube: {e}")
-
-
-if __name__ == '__main__':
-    clear = lambda: os.system('cls')
-    
-    # This Function will clean any
-    # command before execution of this python file
-    clear()
-    wishMe()
-    username()
-    
-    while True:
-        
-        query = takeCommand().lower()
-        
-        """
-        All the commands said by user will be 
-        stored here in 'query' and will be
-        converted to lower case for easily 
-        recognition of command 
-        """
+def handle_operations(query):
 
         if 'wikipedia' in query:
             speak('Searching Wikipedia...')
@@ -165,14 +34,6 @@ if __name__ == '__main__':
             speak("According to Wikipedia")
             print(results)
             speak(results)
-
-        elif 'spotify' in query.lower():
-            song_name = query.lower().replace('play', '').replace('on spotify', '').strip()
-            open_spotify_song(song_name)
-
-        elif 'on youtube' in query.lower():
-            song_name = query.lower().replace('play', '').replace('on youtube', '').strip()
-            open_youtube_song(song_name)
 
         elif 'open youtube' in query:
             speak("Here you go to Youtube\n")
@@ -197,7 +58,6 @@ if __name__ == '__main__':
             strTime = datetime.datetime.now().strftime("%H:%M:%S")    
             speak(f"Sir, the time is {strTime}")
 
-
         elif 'open opera' in query:
             codePath = r"C:\\Users\\Ajith\\AppData\\Local\\Programs\\Opera\\launcher.exe"
             os.startfile(codePath)
@@ -206,9 +66,7 @@ if __name__ == '__main__':
             try:
                 speak("What should I say?")
                 content = takeCommand()
-                # to = "Receiver email address"  
-                speak("whome should i send")
-                to = input()  
+                to = "Receiver email address"    
                 sendEmail(to, content)
                 speak("Email has been sent !")
             except Exception as e:
@@ -253,13 +111,12 @@ if __name__ == '__main__':
             exit()
 
         elif "who made you" in query or "who created you" in query: 
-            speak("I have been created by Ajith.")
+            speak("I have been created by genius Ajith.")
             
         elif 'joke' in query:
             speak(pyjokes.get_joke())
             
         elif "calculate" in query: 
-            
             app_id = "Wolframalpha api id" 
             client = wolframalpha.Client(app_id)
             indx = query.lower().split().index('calculate') 
@@ -270,7 +127,6 @@ if __name__ == '__main__':
             speak("The answer is " + answer) 
 
         elif 'search' in query or 'play' in query:
-            
             query = query.replace("search", "") 
             query = query.replace("play", "")          
             webbrowser.open(query) 
@@ -293,7 +149,7 @@ if __name__ == '__main__':
             speak("I am your virtual assistant created by Ajith")
 
         elif 'reason for you' in query:
-            speak("I was created as a Minor project by Mister Ajith ")
+            speak("I was created as a Minor project by Mister Ajith")
 
         elif 'change background' in query:
             ctypes.windll.user32.SystemParametersInfoW(20, 
@@ -414,7 +270,7 @@ if __name__ == '__main__':
             # to get API of Open weather 
             api_key = "Api key" 
             base_url = "http://api.openweathermap.org / data / 2.5 / weather?"
-            speak(" City name ")
+            speak("City name ")
             print("City name : ")
             city_name = takeCommand()
             complete_url = base_url + "appid =" + api_key + "&q =" + city_name
@@ -452,12 +308,12 @@ if __name__ == '__main__':
             webbrowser.open("wikipedia.com")
 
         elif "Good Morning" in query:
-            speak("A warm" +query)
+            speak("A warm" + query)
             speak("How are you Mister")
             speak(assname)
 
         # most asked question from google Assistant
-        elif "will you be my gf" in query or "will you be my bf" in query:   
+        elif "will you be my gf" in query or "will you be my bf" in query or "will you be my girlfriend" in query or "will you be my boyfriend" in query:   
             speak("I'm not sure about, may be you should give me some time")
 
         elif "how are you" in query:
