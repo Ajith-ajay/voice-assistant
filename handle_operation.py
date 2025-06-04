@@ -21,7 +21,7 @@ from bs4 import BeautifulSoup
 import win32com.client as wincl
 from urllib.request import urlopen
 from voice_engine import speak
-from utils import takeCommand
+from utils import takeCommand, wishMe
 
 
 
